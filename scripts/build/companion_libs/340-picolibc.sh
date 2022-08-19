@@ -106,8 +106,7 @@ RETARGETABLE_LOCKING:newlib-retargetable-locking
         fi
     done
 
-    [ "${CT_USE_SYSROOT}" = "y" ] && \
-        picolibc_opts+=( "-Dsysroot-install=true" )
+    picolibc_opts+=( "-Dsysroot-install=true" )
 
     [ "${CT_LIBC_PICOLIBC_EXTRA_SECTIONS}" = "y" ] && \
         CT_LIBC_PICOLIBC_TARGET_CFLAGS="${CT_LIBC_PICOLIBC_TARGET_CFLAGS} -ffunction-sections -fdata-sections"
@@ -150,7 +149,7 @@ EOF
         --cross-file picolibc-cross.txt                            \
         --prefix="${CT_PREFIX_DIR}"                                \
         -Dincludedir=picolibc/include                              \
-        -Dlibdir=picolibc/${CT_TARGET}/lib                         \
+        -Dlibdir=picolibc/lib                                      \
         -Dspecsdir="${CT_SYSROOT_DIR}"/lib                         \
         "${CT_SRC_DIR}/picolibc"                                   \
         "${picolibc_opts[@]}"                                      \
@@ -166,6 +165,20 @@ EOF
     CT_EndStep
 
     do_cc_libstdcxx_picolibc
+
+    if [ "${CT_STRIP_TARGET_TOOLCHAIN_LIBRARIES}" = "y" ]; then
+
+	CT_DoStep INFO "Stripping Picolibc library"
+
+	CT_Pushd "${CT_PREFIX_DIR}"
+
+	strip_target_lib "${CT_PREFIX_DIR}/picolibc/lib" "*.a"
+	strip_target_lib "${CT_PREFIX_DIR}/picolibc/lib" "*.o"
+
+	CT_Popd
+
+	CT_EndStep
+    fi
 }
 
 fi
