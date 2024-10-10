@@ -103,6 +103,15 @@ config LIBC_PICOLIBC_ENABLE_TARGET_OPTSPACE
 
       This will compile picolibc with -Os.
 
+config LIBC_PICOLIBC_ENABLE_TARGET_OPTBOTH
+    bool
+    prompt "Provide both speed and size variants"
+    help
+      Build -Os and -O3 versions of picolibc selectable when using the
+      toolchain. Use LIBC_PICOLIBC_ENABLE_TARGET_OPTSPACE to set the default,
+      then use --picolibc-buildtype=release or --picolibc-buildtype=minsize
+      to select the other while using the toolchain.
+
 config LIBC_PICOLIBC_LTO
     bool
     prompt "Enable Link Time Optimization"

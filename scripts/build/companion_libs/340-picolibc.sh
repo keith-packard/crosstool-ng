@@ -115,6 +115,14 @@ RETARGETABLE_LOCKING:newlib-retargetable-locking
     [ "${CT_LIBC_PICOLIBC_LTO}" = "y" ] && \
         CT_LIBC_PICOLIBC_TARGET_CFLAGS="${CT_LIBC_PICOLIBC_TARGET_CFLAGS} -flto"
 
+    if [ "${CT_LIBC_PICOLIBC_ENABLE_TARGET_OPTSPACE}" = "y" ]; then
+        buildtype="minsize"
+	buildtype_other="release"
+    else
+        buildtype="release"
+	buildtype_other="minsize"
+    fi
+
     cflags_for_target="${CT_ALL_TARGET_CFLAGS} ${CT_LIBC_PICOLIBC_TARGET_CFLAGS}"
 
     # Note: picolibc handles the build/host/target a little bit differently
@@ -147,21 +155,47 @@ skip_sanity_check = true
 EOF
 
     CT_DoExecLog CFG                                               \
-    meson                                                          \
+    meson setup                                                    \
         --cross-file picolibc-cross.txt                            \
         --prefix="${CT_PREFIX_DIR}"                                \
         -Dincludedir=picolibc/include                              \
         -Dlibdir=picolibc/${CT_TARGET}/lib                         \
         -Dspecsdir="${CT_SYSROOT_DIR}"/lib                         \
-        "${CT_SRC_DIR}/picolibc"                                   \
+	--buildtype="${buildtype}"                                 \
+        . "${CT_SRC_DIR}/picolibc"                                 \
         "${picolibc_opts[@]}"                                      \
         "${CT_LIBC_PICOLIBC_EXTRA_CONFIG_ARRAY[@]}"
 
+    if [ "${CT_LIBC_PICOLIBC_ENABLE_TARGET_OPTBOTH}" = "y" ]; then
+	CT_DoExecLog CFG                                               \
+	meson setup                                                    \
+            --cross-file picolibc-cross.txt                            \
+            --prefix="${CT_PREFIX_DIR}"                                \
+            -Dincludedir=picolibc/include                              \
+            -Dlibdir=picolibc/${CT_TARGET}/lib                         \
+            -Dspecsdir="${CT_SYSROOT_DIR}"/lib                         \
+	    -Dbuild-type-subdir="${buildtype_other}"                   \
+	    --buildtype="${buildtype_other}"                           \
+            build-"${buildtype_other}" "${CT_SRC_DIR}/picolibc"        \
+            "${picolibc_opts[@]}"                                      \
+            "${CT_LIBC_PICOLIBC_EXTRA_CONFIG_ARRAY[@]}"
+    fi
+
     CT_DoLog EXTRA "Building C library"
     CT_DoExecLog ALL ninja
+    if [ "${CT_LIBC_PICOLIBC_ENABLE_TARGET_OPTBOTH}" = "y" ]; then
+        CT_Pushd build-"${buildtype_other}"
+        CT_DoExecLog ALL ninja
+	CT_Popd
+    fi
 
     CT_DoLog EXTRA "Installing C library"
     CT_DoExecLog ALL ninja install
+    if [ "${CT_LIBC_PICOLIBC_ENABLE_TARGET_OPTBOTH}" = "y" ]; then
+        CT_Pushd build-"${buildtype_other}"
+        CT_DoExecLog ALL ninja install
+	CT_Popd
+    fi
 
     CT_Popd
     CT_EndStep
